@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه هوشمند پژوهش</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/misc/Farsi-Digits/font-face.css " rel="stylesheet" type="text/css" />
+    <!-- Adding vis.js for better graph visualization -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+   
+    <style>
+        /* --- 1. Global Variables --- */
+        :root {
+            --bg-color: #F8F9FA;
+            --paper-color: #FFFFFF;
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --accent-color: #2C7A7B; /* Teal - traditional yet modern */
+            --accent-light: #E6FFFA;
+            --ghost-color: #A0AEC0;
+            --diff-green-bg: #C6F6D5;
+            --diff-green-text: #22543D;
+            --diff-red-bg: #FED7D7;
+            --diff-red-text: #822727;
+            --font-main: 'Vazirmatn', sans-serif;
+            --border-color: #E2E8F0;
+            --cursor-blue: #3182CE;
+            --cursor-green: #38A169;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+       
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            line-height: 1.8;
+        }
+        /* --- 2. Layout Grid --- */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        /* --- 3. The Narrative (Right Column for RTL) --- */
+        .scrolly-text {
+            padding: 50vh 4rem 50vh 2rem;
+            z-index: 10;
+            position: relative;
+            pointer-events: none;
+        }
+        .step {
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0.2;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: translateY(20px);
+            pointer-events: auto;
+        }
+        .step.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .step-content {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            padding: 2.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            max-width: 500px;
+        }
+        .step-tag {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent-color);
+            margin-bottom: 0.5rem;
+            display: block;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .step h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            color: #1A202C;
+        }
+        .step p {
+            color: #4A5568;
+            font-size: 1.1rem;
+        }
+        /* --- 4. The Stage (Left Column - Sticky) --- */
+        .sticky-stage {
+            height: 100vh;
+            position: sticky;
+            top: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            direction: ltr; /* Keeps the mock device centered nicely */
+        }
+        .device-mockup {
+            direction: rtl; /* Content inside is RTL */
+            width: 100%;
+            max-width: 650px;
+            height: 80vh;
+            background: var(--paper-color);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            transition: all 0.5s ease;
+            position: relative;
+        }
+        /* Editor UI Components */
+        .editor-header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #FAFAFA;
+        }
+        .doc-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #2D3748;
+        }
+        .doc-tabs {
+            display: flex;
+            gap: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        .tab.active { color: var(--accent-color); font-weight: bold; border-bottom: 2px solid var(--accent-color); }
+        .editor-body {
+            flex: 1;
+            padding: 3rem 4rem;
+            font-size: 1.25rem;
+            line-height: 2.2; /* Better for Arabic/Persian script */
+            color: var(--text-main);
+            overflow-y: hidden;
+            position: relative;
+            text-align: justify;
+        }
+        /* --- Feature Visualizations --- */
+       
+        /* Ghost Writer */
+        .ghost-text {
+            color: var(--ghost-color);
+            animation: fadeIn 1s ease;
+        }
+       
+        .ai-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background-color: var(--accent-color);
+            margin-right: 2px;
+            vertical-align: middle;
+            animation: blink 1s infinite;
+        }
+        .tab-hint {
+            display: inline-block;
+            font-family: sans-serif;
+            font-size: 0.7rem;
+            background: #EDF2F7;
+            color: #718096;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-right: 10px;
+            border: 1px solid #CBD5E0;
+            vertical-align: middle;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: all 0.3s ease;
+        }
+        .tab-hint.visible { opacity: 1; transform: translateY(0); }
+        /* Diff View */
+        .diff-added {
+            background-color: var(--diff-green-bg);
+            color: var(--diff-green-text);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+       
+        .diff-removed {
+            background-color: var(--diff-red-bg);
+            color: var(--diff-red-text);
+            text-decoration: line-through;
+            padding: 2px 4px;
+            border-radius: 4px;
+            margin-left: 4px;
+            opacity: 0.7;
+        }
+        /* AI Toolbar */
+        .ai-toolbar {
+            position: absolute;
+            top: 40%;
+            left: 2rem;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            width: 200px;
+            opacity: 0;
+            transform: scale(0.9) translateX(-20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+        .ai-toolbar.visible { opacity: 1; transform: scale(1) translateX(0); }
+        .btn-accept { width: 100%; background: var(--accent-color); color: white; border: none; padding: 8px; border-radius: 6px; cursor: pointer; font-family: var(--font-main); margin-bottom: 5px;}
+        .btn-reject { width: 100%; background: transparent; color: #718096; border: 1px solid #E2E8F0; padding: 8px; border-radius: 6px; cursor: pointer; font-family: var(--font-main); }
+        /* History Sidebar (Right Side for RTL) */
+        .history-sidebar {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background: #FAFAFA;
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 1.5rem;
+            transform: translateX(100%); /* Hidden initially */
+            transition: transform 0.4s ease;
+            z-index: 5;
+        }
+        .history-sidebar.visible { transform: translateX(0); }
+        .history-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #CBD5E1;
+            margin-bottom: 2.5rem;
+            position: relative;
+            cursor: pointer;
+            z-index: 2;
+        }
+        .history-dot::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 2.5rem;
+            background: #E2E8F0;
+            left: 50%;
+            bottom: -2.5rem;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+        .history-dot:last-child::after { display: none; }
+        .history-dot.active { background: var(--accent-color); box-shadow: 0 0 0 4px var(--accent-light); }
+       
+        .history-tooltip {
+            position: absolute;
+            right: 30px;
+            background: #2D3748;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2;
+            pointer-events: none;
+        }
+        .history-dot:hover .history-tooltip { opacity: 1; }
+        /* Graph Visualization */
+        .graph-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        #knowledge-graph {
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Text Selection Animation */
+        .selected-text {
+            background-color: rgba(44, 122, 123, 0.2);
+            border-radius: 3px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* AI Command Input */
+        .ai-command-input {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        .ai-command-input.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .ai-command-input::before {
+            content: ">";
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        .ai-command-text {
+            color: var(--text-main);
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        /* Cloud Animation */
+        .cloud-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
+            padding: 2rem;
+        }
+        .cloud-icon {
+            width: 100px;
+            height: 60px;
+            background: white;
+            border-radius: 100px;
+            position: relative;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .cloud-icon:before {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: 25px;
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+        }
+        .cloud-icon:after {
+            content: '';
+            position: absolute;
+            top: -35px;
+            right: 25px;
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+        }
+        .uploading-files {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 80%;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideIn 0.5s forwards;
+        }
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--accent-color);
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+        .file-name {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        .file-progress {
+            width: 100px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .file-progress-bar {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0;
+            animation: progress 2s forwards;
+        }
+        
+        /* Collaboration Cursors */
+        .cursor {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        .cursor-blue {
+            background-color: var(--cursor-blue);
+        }
+        .cursor-green {
+            background-color: var(--cursor-green);
+        }
+        .cursor-label {
+            position: absolute;
+            top: -25px;
+            right: 0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: white;
+            white-space: nowrap;
+            transform: translateX(50%);
+        }
+        .cursor-blue .cursor-label {
+            background-color: var(--cursor-blue);
+        }
+        .cursor-green .cursor-label {
+            background-color: var(--cursor-green);
+        }
+        
+        /* Introduction Page Styles */
+        .intro-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+        .intro-logo {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .intro-logo::before {
+            content: "📚";
+            font-size: 40px;
+        }
+        .intro-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .intro-subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        .intro-features {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .intro-feature {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Animations */
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { background-color: rgba(44, 122, 123, 0.2); } 50% { background-color: rgba(44, 122, 123, 0.4); } 100% { background-color: rgba(44, 122, 123, 0.2); } }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        @keyframes progress { to { width: 100%; } }
+        @keyframes typing { from { width: 0; } to { width: 100%; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="scrolly-text">
+        <div class="step" data-index="0">
+            <div class="step-content">
+                <span class="step-tag">🌟 معرفی محصول</span>
+                <h2>سامانه هوشمند پژوهش</h2>
+                <p>پلتفرمی نوین برای پژوهشگران علوم دینی که با بهره‌گیری از هوش مصنوعی، فرآیند تحقیق، نگارش و همکاری تیمی را متحول می‌کند. با ابزارهای پیشرفته و رابط کاربری ساده، تجربه‌ای بی‌نظیر از پژوهش آکادمیک را تجربه کنید.</p>
+            </div>
+        </div>
+        <div class="step" data-index="1">
+            <div class="step-content">
+                <span class="step-tag">✨ دستیار هوشمند</span>
+                <h2>تحریر با سرعت اندیشه</h2>
+                <p>دیگر با صفحه سفید روبرو نخواهید شد. هوش مصنوعی با درک متون فقهی و روایی، ادامه جمله شما را به سبک قدما یا معاصرین پیشنهاد می‌دهد. با یک کلیک تأیید کنید.</p>
+            </div>
+        </div>
+        <div class="step" data-index="2">
+            <div class="step-content">
+                <span class="step-tag">⚖️ نقد و بررسی</span>
+                <h2>تصحیح هوشمند متن</h2>
+                <p>متن را انتخاب کنید تا هوش مصنوعی سندیت روایت را بررسی کند یا لحن نوشتار را ادیبانه‌تر کند. تغییرات را قبل از اعمال، دقیقاً مشاهده کنید.</p>
+            </div>
+        </div>
+        <div class="step" data-index="3">
+            <div class="step-content">
+                <span class="step-tag">📜 بایگانی خودکار</span>
+                <h2>ماشین زمان پژوهش</h2>
+                <p>نگران از دست رفتن نسخه‌های قبلی نباشید. تمام مراحل نگارش به صورت خودکار ذخیره می‌شوند و می‌توانید به هر لحظه از تحقیق خود بازگردید.</p>
+            </div>
+        </div>
+       
+         <div class="step" data-index="4">
+            <div class="step-content">
+                <span class="step-tag">🔗 شبکه دانش</span>
+                <h2>گراف رجال و کتب</h2>
+                <p>ارتباطات پنهان را کشف کنید. با کلیک روی نام راوی یا کتاب، شبکه ارتباطی او با سایر مشایخ و آثار در یک نمای گرافیکی زنده نمایش داده می‌شود.</p>
+            </div>
+        </div>
+        
+        <div class="step" data-index="5">
+            <div class="step-content">
+                <span class="step-tag">☁️ ذخیره ابری امن</span>
+                <h2>پژوهش خود را در امان نگه دارید</h2>
+                <p>تمام اسناد و تحقیقات شما به صورت خودکار در فضای ابری امن ذخیره می‌شوند. دیگر نگران از دست رفتن اطلاعات ارزشمند خود نباشید.</p>
+            </div>
+        </div>
+        
+        <div class="step" data-index="6">
+            <div class="step-content">
+                <span class="step-tag">👥 همکاری تیمی</span>
+                <h2>تحقیق گروهی همزمان</h2>
+                <p>با همکاران خود به صورت همزمان روی یک سند کار کنید. مشاهده کنید که هر فرد در کجای متن در حال ویرایش است و تغییرات را به صورت زنده ببینید.</p>
+            </div>
+        </div>
+    </div>
+    <div class="sticky-stage">
+        <div class="device-mockup" id="editor-mockup">
+            <div class="editor-header">
+                <div class="doc-title">تحقیق: حجیت عقل در اصول.docx</div>
+                <div class="doc-tabs">
+                    <span class="tab active" id="tab-write">نگارش</span>
+                    <span class="tab" id="tab-graph">گراف دانش</span>
+                </div>
+            </div>
+           
+            <div class="history-sidebar" id="history-sidebar">
+                <div class="history-dot" title=""><span class="history-tooltip">آغاز نگارش</span></div>
+                <div class="history-dot" title=""><span class="history-tooltip">افزودن روایت</span></div>
+                <div class="history-dot active" title=""><span class="history-tooltip">نسخه فعلی</span></div>
+            </div>
+            <div class="editor-body" id="editor-content">
+                </div>
+           
+            <div class="ai-toolbar" id="ai-toolbar">
+                <div style="font-size: 0.8rem; color: #718096; margin-bottom: 8px;">پیشنهاد هوش مصنوعی:</div>
+                <div style="font-weight: bold; margin-bottom: 10px; font-size: 0.9rem;">اصلاح سال وفات و منبع</div>
+                <button class="btn-accept">پذیرش تغییرات</button>
+                <button class="btn-reject">نادیده گرفتن</button>
+            </div>
+            
+            <div class="ai-command-input" id="ai-command-input">
+                <div class="ai-command-text" id="command-text"></div>
+            </div>
+            
+            <div class="cursor cursor-blue" id="cursor-blue" style="display: none;">
+                <div class="cursor-label">ویراستار</div>
+            </div>
+            
+            <div class="cursor cursor-green" id="cursor-green" style="display: none;">
+                <div class="cursor-label">محقق</div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // --- Configuration ---
+    const editorContent = document.getElementById('editor-content');
+    const steps = document.querySelectorAll('.step');
+    const aiToolbar = document.getElementById('ai-toolbar');
+    const historySidebar = document.getElementById('history-sidebar');
+    const mockup = document.getElementById('editor-mockup');
+    const tabWrite = document.getElementById('tab-write');
+    const tabGraph = document.getElementById('tab-graph');
+    const aiCommandInput = document.getElementById('ai-command-input');
+    const commandText = document.getElementById('command-text');
+    const cursorBlue = document.getElementById('cursor-blue');
+    const cursorGreen = document.getElementById('cursor-green');
+    
+    // Graph data for the knowledge graph
+    let graphNetwork = null;
+    
+    // --- State Renderer ---
+    function renderState(index) {
+        // Reset Styles
+        aiToolbar.classList.remove('visible');
+        historySidebar.classList.remove('visible');
+        aiCommandInput.classList.remove('visible');
+        cursorBlue.style.display = 'none';
+        cursorGreen.style.display = 'none';
+        editorContent.style.paddingRight = "4rem"; // Default styling
+        tabWrite.classList.add('active');
+        tabGraph.classList.remove('active');
+        
+        if (index === 0) {
+            // STATE 0: INTRODUCTION PAGE
+            editorContent.innerHTML = `
+                <div class="intro-container">
+                    <div class="intro-logo"></div>
+                    <h1 class="intro-title">سامانه هوشمند پژوهش</h1>
+                    <p class="intro-subtitle">انقلابی در تحقیقات علوم دینی با قدرت هوش مصنوعی</p>
+                    <div class="intro-features">
+                        <div class="intro-feature">✍️ نگارش هوشمند</div>
+                        <div class="intro-feature">🔍 تحلیل متون</div>
+                        <div class="intro-feature">📊 گراف دانش</div>
+                        <div class="intro-feature">☁️ ذخیره ابری</div>
+                        <div class="intro-feature">👥 همکاری تیمی</div>
+                    </div>
+                </div>
+            `;
+        }
+        else if (index === 1) {
+            // STATE 1: GHOST WRITING (Persian)
+            editorContent.innerHTML = `
+                <p>در بررسی آراء اصولیون پیرامون جایگاه عقل، شیخ طوسی در کتاب «العُدّة» می‌فرماید که</p>
+                <p>عقل، کاشف از حکم شرعی است در صورتی که ملازمه‌ای بین</p>
+                <p>حکم عقل و شرع باشد. اما اخباریون معتقدند که <span class="ghost-text">عقل به تنهایی حجت نیست مگر با تأیید نص صریح...</span><span class="tab-hint visible">Tab</span><span class="ai-cursor"></span></p>
+            `;
+        }
+        else if (index === 2) {
+            // STATE 2: DIFF VIEW with enhanced animations
+            editorContent.innerHTML = `
+                <p>در بررسی آراء اصولیون پیرامون جایگاه عقل، شیخ طوسی در کتاب «العُدّة» می‌فرماید که عقل، کاشف از حکم شرعی است.</p>
+                <br>
+                <p>روایت: زرارة بن أعین از امام صادق (ع) نقل می‌کند:</p>
+                <p id="text-to-select">«حدیث ضعیف است چون سندش قطع شده.»</p>
+            `;
+            
+            // Animate text selection
+            setTimeout(() => {
+                const textElement = document.getElementById('text-to-select');
+                textElement.classList.add('selected-text');
+                
+                // Show AI command input
+                aiCommandInput.classList.add('visible');
+                commandText.innerHTML = '';
+                typeCommand("بررسی سندیت روایت");
+                
+                // After command is typed, show the diff
+                setTimeout(() => {
+                    textElement.innerHTML = `
+                        <span class="diff-removed">«حدیث ضعیف است چون سندش قطع شده.»</span>
+                        <span class="diff-added">«این روایت مرسله است اما به دلیل عمل اصحاب، موثق تلقی می‌شود.»</span>
+                    `;
+                    textElement.classList.remove('selected-text');
+                    aiToolbar.classList.add('visible');
+                }, 2000);
+            }, 1000);
+        }
+        else if (index === 3) {
+            // STATE 3: HISTORY / VERSIONING
+            // Shift content to allow Sidebar on the RIGHT
+            editorContent.style.paddingRight = "6rem";
+            historySidebar.classList.add('visible');
+           
+            editorContent.innerHTML = `
+                <h3 style="margin-bottom: 1rem; color: #2C7A7B;">نتیجه‌گیری نهایی</h3>
+                <p>بنابراین، رویکرد اعتدالی در جمع بین عقل و نقل، همان مسیری است که اکثر فقهای امامیه پیموده‌اند. (نسخه نهایی)</p>
+                <div style="margin-top: 2rem; border-top: 1px dashed #ccc; padding-top: 1rem; font-size: 0.9rem; color: #718096;">
+                    <span style="font-weight: bold;">ذخیره خودکار:</span> تغییرات فصل سوم اعمال شد.
+                </div>
+            `;
+        }
+        else if (index === 4) {
+            // STATE 4: KNOWLEDGE GRAPH using vis.js
+            tabWrite.classList.remove('active');
+            tabGraph.classList.add('active');
+            historySidebar.classList.remove('visible');
+            editorContent.style.paddingRight = "2rem";
+            
+            // Create a container for the graph
+            editorContent.innerHTML = '<div id="knowledge-graph"></div>';
+            
+            // Create a network
+            const container = document.getElementById('knowledge-graph');
+            
+            // Create nodes for the narration chain
+            const nodes = new vis.DataSet([
+                {id: 1, label: 'امام صادق (ع)', group: 'imam', value: 30},
+                {id: 2, label: 'زرارة بن أعین', group: 'companion', value: 25},
+                {id: 3, label: 'حمران بن أعین', group: 'companion', value: 20},
+                {id: 4, label: 'محمد بن مسلم', group: 'companion', value: 20},
+                {id: 5, label: 'ابی بصیر', group: 'companion', value: 20},
+                {id: 6, label: 'کتب اربعه', group: 'book', value: 15},
+                {id: 7, label: 'من لایحضره الفقیه', group: 'book', value: 15},
+                {id: 8, label: 'تهذیب الاحکام', group: 'book', value: 15},
+                {id: 9, label: 'الاستبصار', group: 'book', value: 15},
+                {id: 10, label: 'شیخ کلینی', group: 'scholar', value: 20},
+                {id: 11, label: 'شیخ صدوق', group: 'scholar', value: 20},
+                {id: 12, label: 'شیخ طوسی', group: 'scholar', value: 20}
+            ]);
+            
+            // Create edges showing the narration chain
+            const edges = new vis.DataSet([
+                {from: 1, to: 2, label: 'روایت می‌کند', arrows: 'to'},
+                {from: 1, to: 3, label: 'روایت می‌کند', arrows: 'to'},
+                {from: 1, to: 4, label: 'روایت می‌کند', arrows: 'to'},
+                {from: 1, to: 5, label: 'روایت می‌کند', arrows: 'to'},
+                {from: 2, to: 6, label: 'در', arrows: 'to'},
+                {from: 3, to: 7, label: 'در', arrows: 'to'},
+                {from: 4, to: 8, label: 'در', arrows: 'to'},
+                {from: 5, to: 9, label: 'در', arrows: 'to'},
+                {from: 6, to: 10, label: 'تألیف', arrows: 'to'},
+                {from: 7, to: 11, label: 'تألیف', arrows: 'to'},
+                {from: 8, to: 12, label: 'تألیف', arrows: 'to'},
+                {from: 9, to: 12, label: 'تألیف', arrows: 'to'},
+                {from: 10, to: 11, label: 'هم‌عصر', arrows: 'to', color: {color: '#ccc'}},
+                {from: 11, to: 12, label: 'هم‌عصر', arrows: 'to', color: {color: '#ccc'}}
+            ]);
+            
+            const data = {
+                nodes: nodes,
+                edges: edges
+            };
+            
+            const options = {
+                groups: {
+                    imam: {
+                        color: {background: '#2C7A7B', border: '#1A5A5B'},
+                        font: {color: 'white'}
+                    },
+                    companion: {
+                        color: {background: '#4299E1', border: '#2B6CB0'},
+                        font: {color: 'white'}
+                    },
+                    scholar: {
+                        color: {background: '#805AD5', border: '#6B46C1'},
+                        font: {color: 'white'}
+                    },
+                    book: {
+                        color: {background: '#ED8936', border: '#C05621'},
+                        font: {color: 'white'},
+                        shape: 'box'
+                    }
+                },
+                nodes: {
+                    shape: 'dot',
+                    scaling: {
+                        min: 20,
+                        max: 30
+                    },
+                    font: {
+                        size: 12,
+                        face: 'Vazirmatn',
+                        direction: 'rtl'
+                    }
+                },
+                edges: {
+                    width: 2,
+                    color: {inherit: 'from'},
+                    smooth: {
+                        type: 'continuous'
+                    },
+                    font: {
+                        size: 10,
+                        face: 'Vazirmatn',
+                        direction: 'rtl',
+                        align: 'middle'
+                    }
+                },
+                physics: {
+                    stabilization: {
+                        iterations: 200
+                    },
+                    barnesHut: {
+                        gravitationalConstant: -30000,
+                        springConstant: 0.04,
+                        springLength: 100
+                    }
+                },
+                interaction: {
+                    tooltipDelay: 200,
+                    hideEdgesOnDrag: true
+                }
+            };
+            
+            // Create the network
+            graphNetwork = new vis.Network(container, data, options);
+            
+            // Add a legend
+            const legendContainer = document.createElement('div');
+            legendContainer.style.position = 'absolute';
+            legendContainer.style.bottom = '10px';
+            legendContainer.style.left = '10px';
+            legendContainer.style.background = 'rgba(255,255,255,0.8)';
+            legendContainer.style.padding = '10px';
+            legendContainer.style.borderRadius = '5px';
+            legendContainer.style.fontSize = '12px';
+            legendContainer.style.fontFamily = 'Vazirmatn';
+            legendContainer.style.direction = 'rtl';
+            
+            legendContainer.innerHTML = `
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                    <div style="width:10px;height:10px;background:#2C7A7B;border-radius:50%"></div> امام
+                </div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                    <div style="width:10px;height:10px;background:#4299E1;border-radius:50%"></div> راوی
+                </div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                    <div style="width:10px;height:10px;background:#805AD5;border-radius:50%"></div> عالم
+                </div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <div style="width:10px;height:10px;background:#ED8936;border-radius:2px"></div> کتاب
+                </div>
+            `;
+            
+            container.appendChild(legendContainer);
+        }
+        else if (index === 5) {
+            // STATE 5: CLOUD SAVING
+            tabWrite.classList.add('active');
+            tabGraph.classList.remove('active');
+            historySidebar.classList.remove('visible');
+            editorContent.style.paddingRight = "2rem";
+            
+            editorContent.innerHTML = `
+                <div class="cloud-container">
+                    <div class="cloud-icon"></div>
+                    <h3 style="color: var(--text-main); margin-bottom: 1rem;">ذخیره‌سازی امن در فضای ابری</h3>
+                    <div class="uploading-files">
+                        <div class="file-item" style="animation-delay: 0.5s;">
+                            <div class="file-icon"></div>
+                            <div class="file-name">تحقیق: حجیت عقل در اصول.docx</div>
+                            <div class="file-progress">
+                                <div class="file-progress-bar"></div>
+                            </div>
+                        </div>
+                        <div class="file-item" style="animation-delay: 1s;">
+                            <div class="file-icon"></div>
+                            <div class="file-name">منابع و مآخذ.bib</div>
+                            <div class="file-progress">
+                                <div class="file-progress-bar" style="animation-delay: 0.5s;"></div>
+                            </div>
+                        </div>
+                        <div class="file-item" style="animation-delay: 1.5s;">
+                            <div class="file-icon"></div>
+                            <div class="file-name">یادداشت‌ها.pdf</div>
+                            <div class="file-progress">
+                                <div class="file-progress-bar" style="animation-delay: 1s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 2rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">
+                        تمام اسناد شما با رمزنگاری پیشرفته محافظت می‌شوند
+                    </div>
+                </div>
+            `;
+        }
+        else if (index === 6) {
+            // STATE 6: COLLABORATION
+            tabWrite.classList.add('active');
+            tabGraph.classList.remove('active');
+            historySidebar.classList.remove('visible');
+            editorContent.style.paddingRight = "2rem";
+            
+            editorContent.innerHTML = `
+                <div style="position: relative;">
+                    <h3 style="margin-bottom: 1rem; color: #2C7A7B;">فصل اول: مقدمه</h3>
+                    <p id="paragraph1" style="margin-bottom: 1rem;">در این فصل به بررسی مبانی و اصول اولیه حجیت عقل در فقه شیعه می‌پردازیم. این مبانی از قرآن و سنت استخراج شده و در کلام فقها به تفصیل بیان شده است.</p>
+                    <p id="paragraph2" style="margin-bottom: 1rem;">عقل به عنوان یکی از منابع چهارگانه استنباط احکام، جایگاه ویژه‌ای دارد. این جایگاه در میان فقها مورد بحث و بررسی قرار گرفته و نظرات مختلفی در این باره مطرح شده است.</p>
+                    <p id="paragraph3">در ادامه، به بررسی آراء برجسته فقها در این زمینه خواهیم پرداخت و نشان خواهیم داد که چگونه عقل در کنار دیگر منابع، به استنباط احکام شرعی کمک می‌کند.</p>
+                </div>
+            `;
+            
+            // Show cursors after a delay
+            setTimeout(() => {
+                cursorBlue.style.display = 'block';
+                cursorGreen.style.display = 'block';
+                
+                // Animate cursor blue (ویراستار)
+                animateCursor(cursorBlue, 'paragraph1', 500);
+                
+                // Animate cursor green (محقق) after a delay
+                setTimeout(() => {
+                    animateCursor(cursorGreen, 'paragraph2', 800);
+                }, 1000);
+            }, 500);
+        }
+    }
+    
+    // Function to animate typing a command
+    function typeCommand(command) {
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i < command.length) {
+                commandText.innerHTML = command.substring(0, i + 1);
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 50);
+    }
+    
+    // Function to animate cursor movement and typing
+    function animateCursor(cursor, paragraphId, duration) {
+        const paragraph = document.getElementById(paragraphId);
+        const rect = paragraph.getBoundingClientRect();
+        const editorRect = editorContent.getBoundingClientRect();
+        
+        // Calculate position relative to editor
+        const top = rect.top - editorRect.top + 10;
+        const right = editorRect.width - rect.right + 10;
+        
+        // Position cursor
+        cursor.style.top = `${top}px`;
+        cursor.style.right = `${right}px`;
+        
+        // Animate typing effect
+        setTimeout(() => {
+            let originalText = paragraph.textContent;
+            let i = 0;
+            paragraph.textContent = '';
+            
+            const typeInterval = setInterval(() => {
+                if (i < originalText.length) {
+                    paragraph.textContent += originalText[i];
+                    // Update cursor position
+                    const textWidth = getTextWidth(paragraph.textContent.substring(0, i + 1), '1.25rem Vazirmatn');
+                    cursor.style.right = `${editorRect.width - rect.right + 10 + textWidth}px`;
+                    i++;
+                } else {
+                    clearInterval(typeInterval);
+                }
+            }, 30);
+        }, 500);
+    }
+    
+    // Function to calculate text width
+    function getTextWidth(text, font) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        context.font = font;
+        return context.measureText(text).width;
+    }
+    
+    // --- Intersection Observer ---
+    const observerOptions = {
+        root: null,
+        rootMargin: '-40% 0px -40% 0px',
+        threshold: 0
+    };
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                steps.forEach(s => s.classList.remove('active'));
+                entry.target.classList.add('active');
+                renderState(parseInt(entry.target.getAttribute('data-index')));
+            }
+        });
+    }, observerOptions);
+    steps.forEach(step => observer.observe(step));
+    // Initial render
+    renderState(0);
+    steps[0].classList.add('active');
+</script>
+</body>
+</html>
