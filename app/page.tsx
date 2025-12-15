@@ -488,7 +488,7 @@ function CollaborationScene() {
 
   return (
     <div className="w-full h-full flex flex-col" dir="rtl">
-      <EditorHeader title="پژوهش مشترک" users={["علی", "زهرا"]} />
+      <EditorHeader title="پژوهش مشترک" users={["محقق", "ویراستار"]} />
       <div className="flex-1 p-8 lg:p-12 bg-white">
         <div className="prose prose-lg max-w-none text-right space-y-6">
           {/* User 1's line */}
