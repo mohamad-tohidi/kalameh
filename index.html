@@ -446,7 +446,7 @@
             background-color: var(--cursor-green);
         }
         
-        /* Introduction Page Styles */
+        /* New Introduction Page Styles */
         .intro-container {
             width: 100%;
             height: 100%;
@@ -455,52 +455,126 @@
             align-items: center;
             justify-content: center;
             padding: 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            color: var(--text-main);
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
+        
+        .intro-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232C7A7B' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
         .intro-logo {
             width: 80px;
             height: 80px;
-            background: white;
+            background: var(--accent-color);
             border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 2rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 25px rgba(44, 122, 123, 0.2);
+            position: relative;
+            z-index: 2;
+            animation: float 3s ease-in-out infinite;
         }
+        
         .intro-logo::before {
             content: "📚";
             font-size: 40px;
         }
+        
         .intro-title {
             font-size: 2.5rem;
             font-weight: bold;
             margin-bottom: 1rem;
+            color: var(--text-main);
+            position: relative;
+            z-index: 2;
         }
+        
         .intro-subtitle {
             font-size: 1.2rem;
             margin-bottom: 2rem;
-            opacity: 0.9;
+            color: var(--text-muted);
+            max-width: 500px;
+            position: relative;
+            z-index: 2;
         }
+        
         .intro-features {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 1rem;
             margin-top: 2rem;
+            position: relative;
+            z-index: 2;
         }
+        
         .intro-feature {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            background: white;
             padding: 0.8rem 1.5rem;
             border-radius: 50px;
             font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 8px;
-            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .intro-feature:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        
+        .intro-divider {
+            width: 50px;
+            height: 3px;
+            background: var(--accent-color);
+            margin: 1.5rem 0;
+            border-radius: 3px;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .intro-description {
+            font-size: 1rem;
+            color: var(--text-muted);
+            max-width: 450px;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .intro-cta {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 4px 12px rgba(44, 122, 123, 0.3);
+        }
+        
+        .intro-cta:hover {
+            background-color: #2a6969;
+            transform: translateY(-2px);
         }
         
         /* Animations */
@@ -510,6 +584,7 @@
         @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
         @keyframes progress { to { width: 100%; } }
         @keyframes typing { from { width: 0; } to { width: 100%; } }
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
     </style>
 </head>
 <body>
@@ -637,12 +712,14 @@
         tabGraph.classList.remove('active');
         
         if (index === 0) {
-            // STATE 0: INTRODUCTION PAGE
+            // STATE 0: NEW IMPROVED INTRODUCTION PAGE
             editorContent.innerHTML = `
                 <div class="intro-container">
+                    <div class="intro-background"></div>
                     <div class="intro-logo"></div>
                     <h1 class="intro-title">سامانه هوشمند پژوهش</h1>
-                    <p class="intro-subtitle">انقلابی در تحقیقات علوم دینی با قدرت هوش مصنوعی</p>
+                    <div class="intro-divider"></div>
+                    <p class="intro-description">پلتفرمی پیشرفته برای پژوهشگران علوم دینی که با بهره‌گیری از هوش مصنوعی، فرآیند تحقیق و نگارش را متحول می‌کند</p>
                     <div class="intro-features">
                         <div class="intro-feature">✍️ نگارش هوشمند</div>
                         <div class="intro-feature">🔍 تحلیل متون</div>
@@ -650,6 +727,7 @@
                         <div class="intro-feature">☁️ ذخیره ابری</div>
                         <div class="intro-feature">👥 همکاری تیمی</div>
                     </div>
+                    <button class="intro-cta">شروع پژوهش</button>
                 </div>
             `;
         }
